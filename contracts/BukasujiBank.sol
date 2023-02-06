@@ -2,13 +2,11 @@
 pragma solidity >=0.8.0;
 
 contract BukasujiBank{
-
-    error InvalidAmount (uint256 sent, uint256 minRequired);
     
     mapping(address=>uint256) public balances;
-     mapping(address => bool) public isDeposited;
-
+    mapping(address => bool) public isDeposited;
     mapping(string=>uint256) public kycDetails;
+    
     address public owner;
 
     event FundsDeposited (address indexed user, uint amount, uint timestamp);
@@ -19,16 +17,16 @@ contract BukasujiBank{
         uint age;
     }
 
-    //UserDetails details array
+    //array for all the user details
     UserDetails[] detailArr;
     
-    //a modifier to specify owner of contract
+    //a modifier to specify owner of the contract
     modifier isOwner {
         require(owner == msg.sender);
         _;
     }
 
-    // modifier to specify that it is the right address that increases their fund
+    // modifier to check that a user have made deposit before increasing fund or his deposit in the bank
     modifier increaseDeposit {
         require(balances[msg.sender] > 0, "you have 0 balance, deposit first before increasing your deposit");
         _;
@@ -43,10 +41,10 @@ contract BukasujiBank{
     function deposit() public payable  {
        balances[msg.sender] += msg.value;
        emit FundsDeposited(msg.sender, msg.value,block.timestamp );
-        
     }
 
-    //function to increase fund, it has two modifiers
+    //function to increase or add to initial deposit.
+    //it has a modifier to check, that the user have alredy made a deposit before increasing fund
     function addfund() public payable  increaseDeposit {
         balances[msg.sender] += msg.value;
         emit FundsDeposited(msg.sender, msg.value, block.timestamp);
@@ -55,7 +53,6 @@ contract BukasujiBank{
     //function to check balance
     function checkBalance() public view returns (uint256) {
         return balances[msg.sender];
- 
     }
 
     //function to withdraw deposit
@@ -63,34 +60,29 @@ contract BukasujiBank{
         require(balances[msg.sender] >= amount,  "insufficient fund, please reduce amount");
         payable(msg.sender).transfer(amount);
         balances[msg.sender] -= amount;
-
     }
 
-   // function used to set user details and pushed to the array
+   // function to set user details, takes two parameter age and name
    function setUserDetails(string calldata name, uint256 age) public {
         emit ProfileUpdated(msg.sender);
         detailArr.push(UserDetails(name, age));
         kycDetails[name] = age;
     }
     
-   // function fetches all stored details in the array
+   // function to fetch user details
     function getDetail(string memory name) public view  returns ( uint) {
         return  kycDetails[name];
         
     }
-/// @return The balance of the  Bank contract
+
+    //function to get the total balance or deposit in the bank contract
     function depositsBalance() public view returns (uint) {
         return address(this).balance;
     }
 
-    //Need to have a fallback function for the contract to be able to receive funds
-    fallback () external payable {
-       
-    }
-
-    receive() external payable {
-        
-    }
+    //fallback function, incase fund was sent directly to the bank without the deposit() or addfund() function
+    fallback () external payable {}
+    receive() external payable {}   
     
-
 }   
+
